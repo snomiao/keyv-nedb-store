@@ -1,6 +1,6 @@
 # keyv-nedb-store
 
-A [Keyv](https://github.com/jaredwray/keyv) store implementation using [NeDB](https://github.com/seald/nedb) as the backend storage.
+A [Keyv](https://github.com/jaredwray/keyv) store implementation using [NeDB](https://github.com/seald/nedb) ([@seald-io/nedb](https://www.npmjs.com/package/@seald-io/nedb)) as the backend storage.
 
 ## Features
 
@@ -14,13 +14,13 @@ A [Keyv](https://github.com/jaredwray/keyv) store implementation using [NeDB](ht
 ## Installation
 
 ```bash
-bun install keyv-nedb-store
+bun install keyv-nedb-store @seald-io/nedb
 ```
 
 Or with npm:
 
 ```bash
-npm install keyv-nedb-store
+npm install keyv-nedb-store @seald-io/nedb
 ```
 
 ## Usage
@@ -32,10 +32,7 @@ import Keyv from "keyv";
 import { KeyvNedbStore } from "keyv-nedb-store";
 
 // Create a store with file-based persistence
-const store = new KeyvNedbStore({
-  filename: "path/to/database.nedb.yaml",
-  autoload: true
-});
+const store = new KeyvNedbStore("path/to/database.nedb.yaml");
 
 const keyv = new Keyv({ store });
 
