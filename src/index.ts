@@ -21,7 +21,7 @@ import type { KeyvStoreAdapter } from "keyv";
  * peek into the database file to see the stored data
  * ```
  */
-export class KeyvNedbStore implements KeyvStoreAdapter {
+export default class KeyvNedbStore implements KeyvStoreAdapter {
 	db: NeDB;
 	opts: NeDB.DataStoreOptions;
 	namespace?: string;
