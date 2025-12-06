@@ -32,7 +32,7 @@ import Keyv from "keyv";
 import { KeyvNedbStore } from "keyv-nedb-store";
 
 // Create a store with file-based persistence
-const store = new KeyvNedbStore("path/to/database.nedb.yaml");
+const store = new KeyvNedbStore(".cache/database.nedb.yaml");
 
 const keyv = new Keyv({ store });
 

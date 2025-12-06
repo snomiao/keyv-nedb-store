@@ -118,9 +118,11 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 			// Only clear keys with this namespace
 			const pattern = new RegExp(`^${this.namespace}:`);
 			await this.db.removeAsync({ key: pattern }, { multi: true });
+			await this.db.compactDatafileAsync()
 		} else {
 			// Clear all keys if no namespace
 			await this.db.removeAsync({}, { multi: true });
+			await this.db.compactDatafileAsync()
 		}
 	}
 }
