@@ -1,24 +1,63 @@
 {
-  "name": "keyv-nedb-store",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "@biomejs/biome": "^2.3.8",
-    "@types/bun": "latest",
-    "standard-version": "^9.5.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "@seald-io/nedb": "^4.1.2",
-    "keyv": "^5.5.5"
-  },
-  "scripts": {
-    "build": "tsc",
-    "fmt": "biome check --fix --unsafe",
-    "prepack": "bun fmt && bun run build",
-    "release": "standard-version && git push --follow-tags && npm publish"
-  },
-  "version": "0.0.1"
+	"name": "keyv-nedb-store",
+	"version": "0.0.2",
+	"description": "A Keyv store implementation using NeDB as the backend storage",
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"keywords": [
+		"keyv",
+		"nedb",
+		"storage",
+		"store",
+		"adapter",
+		"key-value",
+		"database",
+		"embedded",
+		"yaml"
+	],
+	"author": "snomiao",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/snomiao/keyv-nedb-store.git"
+	},
+	"bugs": {
+		"url": "https://github.com/snomiao/keyv-nedb-store/issues"
+	},
+	"homepage": "https://github.com/snomiao/keyv-nedb-store#readme",
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.8",
+		"@types/bun": "latest",
+		"standard-version": "^9.5.0",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"keyv": "^5.0.0"
+	},
+	"dependencies": {
+		"@seald-io/nedb": "^4.1.2"
+	},
+	"scripts": {
+		"build": "tsc",
+		"fmt": "biome check --unsafe --write",
+		"prepack": "bun fmt && bun run build",
+		"release": "standard-version && git push --follow-tags && npm publish"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	}
 }
