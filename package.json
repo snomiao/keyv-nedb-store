@@ -1,6 +1,6 @@
 {
 	"name": "keyv-nedb-store",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "A Keyv store implementation using NeDB as the backend storage",
 	"type": "module",
 	"main": "./dist/index.js",
