@@ -5,15 +5,15 @@
       "name": "main",
       "dependencies": {
         "@seald-io/nedb": "^4.1.2",
-        "keyv": "^5.5.5",
       },
       "devDependencies": {
         "@biomejs/biome": "^2.3.8",
         "@types/bun": "latest",
         "standard-version": "^9.5.0",
+        "typescript": "^5.9.3",
       },
       "peerDependencies": {
-        "typescript": "^5.9.3",
+        "keyv": "^5.0.0",
       },
     },
   },

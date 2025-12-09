@@ -27,13 +27,32 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 	namespace?: string;
 
 	/**
-	 * by default, nedb have limitations on keys, e.g. no dot(.) allowed, no $ at the beginning
+	 * nedb have limitations on keys, e.g. no dot(.) allowed, no $ at the beginning
 	 * so we provide serialize and deserialize options to handle complex keys/values if needed
-	 * usually, JSON.stringify and JSON.parse are sufficient
+	 *
+	 * by default, we escape dot(.) and $ with %2E and %24 respectively
+	 *
+	 * @example
+	 * ```ts
+	 * const store = new KeyvNedbStore({
+	 *   filename: "path/to/database.nedb",
+	 *   autoload: true,
+	 *   serializer: {
+	 *     stringify: (data) => {
+	 *       // custom serialization logic
+	 *       return customStringify(data);
+	 *     },
+	 *     parse: (data) => {
+	 *       // custom deserialization logic
+	 *       return customParse(data);
+	 *     },
+	 *   },
+	 * });
+	 * ```
 	 */
 	serializer?: {
-		parse: (data: string) => any;
-		stringify: (data: any) => string;
+		parse: (data: any) => any;
+		stringify: (data: any) => any;
 	};
 
 	constructor(
@@ -42,8 +61,8 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 			| (NeDB.DataStoreOptions & {
 					namespace?: string;
 					serializer?: {
-						parse: (data: string) => any;
-						stringify: (data: any) => string;
+						parse: (data: any) => any;
+						stringify: (data: any) => any;
 					};
 			  }) = {},
 	) {
@@ -52,7 +71,10 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		}
 		this.opts = options;
 		this.namespace = options.namespace;
-		this.serializer = options.serializer;
+		this.serializer = options.serializer ?? {
+			stringify: escapeKeys,
+			parse: unescapeKeys,
+		};
 		this.db = new NeDB(options);
 		this.db.ensureIndexAsync({ fieldName: "key", unique: true });
 		this.db.removeAsync({ expiredAt: { $lt: Date.now() } }, { multi: false });
@@ -79,7 +101,9 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 			await this.db.removeAsync({ key: prefixedKey }, { multi: false });
 			return undefined;
 		}
-		return this.serializer ? this.serializer.parse(doc.value) : doc.value;
+		return this.serializer?.parse
+			? this.serializer.parse(doc.value)
+			: doc.value;
 	}
 	async getMany<Value>(keys: string[]): Promise<Array<Value | undefined>> {
 		const results: Array<Value | undefined> = [];
@@ -96,7 +120,9 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 			{ key: prefixedKey },
 			{
 				key: prefixedKey,
-				value: this.serializer ? this.serializer.stringify(value) : value,
+				value: this.serializer?.stringify
+					? this.serializer.stringify(value)
+					: value,
 				updatedAt: Date.now(),
 				expiredAt: ttl ? Date.now() + ttl : null,
 			},
@@ -125,4 +151,39 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 			await this.db.compactDatafileAsync();
 		}
 	}
+}
+
+export function escapeKeys(o: any): any {
+	if (Array.isArray(o)) {
+		return o.map(escapeKeys);
+	} else if (o && typeof o === "object") {
+		const newObj: any = {};
+		for (const [k, v] of Object.entries(o)) {
+			// Escape % first to avoid double-escaping
+			const safeKey = k
+				.replace(/%/g, "%25")
+				.replace(/\./g, "%2E")
+				.replace(/\$/g, "%24");
+			newObj[safeKey] = escapeKeys(v);
+		}
+		return newObj;
+	}
+	return o;
+}
+export function unescapeKeys(o: any): any {
+	if (Array.isArray(o)) {
+		return o.map(unescapeKeys);
+	} else if (o && typeof o === "object") {
+		const newObj: any = {};
+		for (const [k, v] of Object.entries(o)) {
+			// Unescape % last to avoid double-unescaping
+			const safeKey = k
+				.replace(/%2E/g, ".")
+				.replace(/%24/g, "$")
+				.replace(/%25/g, "%");
+			newObj[safeKey] = unescapeKeys(v);
+		}
+		return newObj;
+	}
+	return o;
 }
