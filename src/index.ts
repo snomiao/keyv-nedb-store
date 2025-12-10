@@ -119,12 +119,14 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		await this.db.updateAsync(
 			{ key: prefixedKey },
 			{
-				key: prefixedKey,
-				value: this.serializer?.stringify
-					? this.serializer.stringify(value)
-					: value,
-				updatedAt: Date.now(),
-				expiredAt: ttl ? Date.now() + ttl : null,
+				$set: {
+					key: prefixedKey,
+					value: this.serializer?.stringify
+						? this.serializer.stringify(value)
+						: value,
+					updatedAt: Date.now(),
+					expiredAt: ttl ? Date.now() + ttl : null,
+				},
 			},
 			{ upsert: true },
 		);
