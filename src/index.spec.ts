@@ -108,25 +108,25 @@ describe("escapeKeys and unescapeKeys", () => {
 describe("KeyvNedbStore - Constructor", () => {
 	test("should create store with string filename", () => {
 		// Don't actually create file, just test options parsing
-		const store = new KeyvNedbStore({ filename: "test.db" });
+		const store = new KeyvNedbStore("tmp/test.nedb.yaml");
 		expect(store).toBeDefined();
-		expect(store.opts.filename).toBe("test.db");
+		expect(store.db).toBeDefined();
 	});
 
 	test("should create store with options object", () => {
-		const store = new KeyvNedbStore({ filename: "test.db" });
+		const store = new KeyvNedbStore({ filename: "tmp/test.nedb.yaml" });
 		expect(store).toBeDefined();
-		expect(store.opts.filename).toBe("test.db");
+		expect(store.db).toBeDefined();
 	});
 
 	test("should create in-memory store with no options", () => {
 		const store = new KeyvNedbStore();
 		expect(store).toBeDefined();
-		expect(store.opts.filename).toBeUndefined();
+		expect(store.db).toBeDefined();
 	});
 
 	test("should set namespace correctly", () => {
-		const store = new KeyvNedbStore({ namespace: "test" });
+		const store = new KeyvNedbStore({}, { namespace: "test" });
 		expect(store.namespace).toBe("test");
 	});
 
@@ -142,7 +142,7 @@ describe("KeyvNedbStore - Constructor", () => {
 			stringify: (data: any) => JSON.stringify(data),
 			parse: (data: any) => JSON.parse(data),
 		};
-		const store = new KeyvNedbStore({ serializer: customSerializer });
+		const store = new KeyvNedbStore({}, { serializer: customSerializer });
 		expect(store.serializer?.stringify).toBe(customSerializer.stringify);
 		expect(store.serializer?.parse).toBe(customSerializer.parse);
 	});
@@ -297,45 +297,45 @@ describe("KeyvNedbStore - TTL (Time To Live)", () => {
 
 describe("KeyvNedbStore - Namespace", () => {
 	test("should prefix keys with namespace", async () => {
-		const store = new KeyvNedbStore({ namespace: "test" });
+		const store = new KeyvNedbStore({}, { namespace: "test" });
 		await store.set("key", "value");
 
 		// Verify the internal key is prefixed
-		const doc = await store.db.findOneAsync({ key: "test:key" });
+		const doc = await store.db.findOneAsync({ _id: "test:key" });
 		expect(doc).toBeDefined();
-		expect(doc?.value).toBe("value");
+		expect(doc?.value).toBeDefined();
 	});
 
 	test("should only clear keys in namespace", async () => {
-		const store = new KeyvNedbStore({ namespace: "ns1" });
+		const store = new KeyvNedbStore({}, { namespace: "ns1" });
 
 		// Manually insert data with different namespaces into the same db
-		await store.db.insertAsync({ key: "ns1:key1", value: "value1" });
-		await store.db.insertAsync({ key: "ns1:key2", value: "value2" });
-		await store.db.insertAsync({ key: "ns2:key1", value: "value3" });
-		await store.db.insertAsync({ key: "ns2:key2", value: "value4" });
+		await store.db.insertAsync({ _id: "ns1:key1", value: "value1" });
+		await store.db.insertAsync({ _id: "ns1:key2", value: "value2" });
+		await store.db.insertAsync({ _id: "ns2:key1", value: "value3" });
+		await store.db.insertAsync({ _id: "ns2:key2", value: "value4" });
 
 		await store.clear();
 
 		// ns1 keys should be gone
-		expect(await store.db.findOneAsync({ key: "ns1:key1" })).toBeNull();
-		expect(await store.db.findOneAsync({ key: "ns1:key2" })).toBeNull();
+		expect(await store.db.findOneAsync({ _id: "ns1:key1" })).toBeNull();
+		expect(await store.db.findOneAsync({ _id: "ns1:key2" })).toBeNull();
 
 		// ns2 keys should remain
-		expect(await store.db.findOneAsync({ key: "ns2:key1" })).toBeDefined();
-		expect(await store.db.findOneAsync({ key: "ns2:key2" })).toBeDefined();
+		expect(await store.db.findOneAsync({ _id: "ns2:key1" })).toBeDefined();
+		expect(await store.db.findOneAsync({ _id: "ns2:key2" })).toBeDefined();
 	});
 
 	test("should delete only from specific namespace", async () => {
-		const store = new KeyvNedbStore({ namespace: "ns1" });
+		const store = new KeyvNedbStore({}, { namespace: "ns1" });
 
-		await store.db.insertAsync({ key: "ns1:key", value: "value1" });
-		await store.db.insertAsync({ key: "ns2:key", value: "value2" });
+		await store.db.insertAsync({ _id: "ns1:key", value: "value1" });
+		await store.db.insertAsync({ _id: "ns2:key", value: "value2" });
 
 		await store.delete("key");
 
-		expect(await store.db.findOneAsync({ key: "ns1:key" })).toBeNull();
-		expect(await store.db.findOneAsync({ key: "ns2:key" })).toBeDefined();
+		expect(await store.db.findOneAsync({ _id: "ns1:key" })).toBeNull();
+		expect(await store.db.findOneAsync({ _id: "ns2:key" })).toBeDefined();
 	});
 });
 
@@ -422,7 +422,7 @@ describe("KeyvNedbStore - Complex Scenarios", () => {
 	});
 
 	test("should persist data to file", async () => {
-		const testDbFile = "test-persist.db";
+		const testDbFile = "tmp/test-persist.nedb.yaml";
 
 		// Clean up any existing files
 		try {

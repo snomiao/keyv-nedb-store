@@ -1,3 +1,4 @@
+import type Nedb from "@seald-io/nedb";
 import NeDB from "@seald-io/nedb";
 import type { KeyvStoreAdapter } from "keyv";
 
@@ -23,9 +24,9 @@ import type { KeyvStoreAdapter } from "keyv";
  */
 export default class KeyvNedbStore implements KeyvStoreAdapter {
 	db: NeDB;
-	opts: NeDB.DataStoreOptions;
+	opts: NeDB.DataStoreOptions | Nedb;
 	namespace?: string;
-
+	ready: Promise<void>;
 	/**
 	 * nedb have limitations on keys, e.g. no dot(.) allowed, no $ at the beginning
 	 * so we provide serialize and deserialize options to handle complex keys/values if needed
@@ -56,29 +57,37 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 	};
 
 	constructor(
-		options:
-			| string
-			| (NeDB.DataStoreOptions & {
-					namespace?: string;
-					serializer?: {
-						parse: (data: any) => any;
-						stringify: (data: any) => any;
-					};
-			  }) = {},
+		uri?: string | NeDB.DataStoreOptions | Nedb,
+		options: {
+			namespace?: string;
+			serializer?: {
+				parse: (data: any) => any;
+				stringify: (data: any) => any;
+			};
+		} = {},
 	) {
-		if (typeof options === "string") {
-			options = { filename: options, autoload: true };
-		}
-		this.opts = options;
 		this.namespace = options.namespace;
 		this.serializer = options.serializer ?? {
 			stringify: escapeKeys,
 			parse: unescapeKeys,
 		};
-		this.db = new NeDB(options);
-		this.db.ensureIndexAsync({ fieldName: "key", unique: true });
-		this.db.removeAsync({ expiredAt: { $lt: Date.now() } }, { multi: false });
-		this.db.compactDatafileAsync();
+		this.opts =
+			uri instanceof NeDB
+				? {}
+				: typeof uri === "string"
+					? { filename: uri, autoload: true }
+					: uri || {};
+		const db = uri instanceof NeDB ? uri : new NeDB(this.opts);
+		this.db = db;
+
+		// Promisify NeDB methods we use
+		this.ready = (async () => {
+			await db.removeAsync(
+				{ expiredAt: { $lt: Date.now() } },
+				{ multi: false },
+			);
+			await db.compactDatafileAsync();
+		})();
 	}
 
 	// IEventEmitter interface methods
@@ -93,12 +102,12 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 
 	async get<Value>(key: string): Promise<Value | undefined> {
 		const prefixedKey = this._getKey(key);
-		const doc = await this.db.findOneAsync({ key: prefixedKey });
+		const doc = await this.db.findOneAsync({ _id: prefixedKey });
 		if (!doc) {
 			return undefined;
 		}
 		if (doc?.expiredAt && doc.expiredAt < Date.now()) {
-			await this.db.removeAsync({ key: prefixedKey }, { multi: false });
+			await this.db.removeAsync({ _id: prefixedKey }, { multi: false });
 			return undefined;
 		}
 		return this.serializer?.parse
@@ -117,10 +126,10 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 	async set(key: string, value: any, ttl?: number): Promise<void> {
 		const prefixedKey = this._getKey(key);
 		await this.db.updateAsync(
-			{ key: prefixedKey },
+			{ _id: prefixedKey },
 			{
 				$set: {
-					key: prefixedKey,
+					_id: prefixedKey,
 					value: this.serializer?.stringify
 						? this.serializer.stringify(value)
 						: value,
@@ -135,7 +144,7 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 	async delete(key: string) {
 		const prefixedKey = this._getKey(key);
 		const results = await this.db.removeAsync(
-			{ key: prefixedKey },
+			{ _id: prefixedKey },
 			{ multi: true },
 		);
 		return results > 0;
@@ -145,7 +154,7 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		if (this.namespace) {
 			// Only clear keys with this namespace
 			const pattern = new RegExp(`^${this.namespace}:`);
-			await this.db.removeAsync({ key: pattern }, { multi: true });
+			await this.db.removeAsync({ _id: pattern }, { multi: true });
 			await this.db.compactDatafileAsync();
 		} else {
 			// Clear all keys if no namespace
