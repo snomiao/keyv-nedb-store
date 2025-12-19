@@ -73,10 +73,10 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		};
 		this.opts =
 			uri instanceof NeDB
-				? {}
+				? { url: "", dialect: "sqlite" }
 				: typeof uri === "string"
-					? { filename: uri, autoload: true }
-					: uri || {};
+					? { filename: uri, autoload: true, url: "", dialect: "sqlite" }
+					: { ...(uri || {}), url: "", dialect: "sqlite" };
 		const db = uri instanceof NeDB ? uri : new NeDB(this.opts);
 		this.db = db;
 
@@ -84,7 +84,7 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		this.ready = (async () => {
 			await db.removeAsync(
 				{ expiredAt: { $lt: Date.now() } },
-				{ multi: false },
+				{ multi: true },
 			);
 			await db.compactDatafileAsync();
 		})();
@@ -145,9 +145,46 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		const prefixedKey = this._getKey(key);
 		const results = await this.db.removeAsync(
 			{ _id: prefixedKey },
-			{ multi: true },
+			{ multi: false },
 		);
 		return results > 0;
+	}
+
+	async *iterator<Value>(
+		namespace?: string,
+	): AsyncGenerator<[string, Value], void> {
+		// Determine which namespace to use
+		const targetNamespace = namespace ?? this.namespace;
+
+		// Build query to find all documents with the target namespace
+		const query: any = {};
+		if (targetNamespace) {
+			query._id = new RegExp(`^${targetNamespace}:`);
+		}
+
+		// Get all documents
+		const docs = await this.db.findAsync(query);
+
+		// Yield each valid (non-expired) document
+		for (const doc of docs) {
+			// Skip expired documents
+			if (doc?.expiredAt && doc.expiredAt < Date.now()) {
+				continue;
+			}
+
+			// Remove namespace prefix from key
+			let key = doc._id;
+			if (targetNamespace) {
+				key = key.replace(`${targetNamespace}:`, "");
+			}
+
+			// Parse value if serializer is configured
+			const value = this.serializer?.parse
+				? this.serializer.parse(doc.value)
+				: doc.value;
+
+			yield [key, value];
+		}
 	}
 
 	async clear(): Promise<void> {

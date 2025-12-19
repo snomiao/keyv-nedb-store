@@ -122,9 +122,34 @@ Common NeDB options:
 Implements the [Keyv Store Adapter](https://github.com/jaredwray/keyv#store-adapters) interface:
 
 - `get(key)` - Get a value by key
+- `getMany(keys)` - Get multiple values by keys
 - `set(key, value, ttl?)` - Set a value with optional TTL in milliseconds
 - `delete(key)` - Delete a value by key
 - `clear()` - Clear all values (respects namespace)
+- `iterator(namespace?)` - Async iterator for all key-value pairs
+
+### Iteration
+
+The store supports iteration over all entries:
+
+```ts
+const store = new KeyvNedbStore("database.nedb.yaml");
+const keyv = new Keyv({ store });
+
+// Add some data
+await keyv.set("user:1", { name: "Alice" });
+await keyv.set("user:2", { name: "Bob" });
+
+// Iterate over all entries
+if (keyv.iterator) {
+  for await (const [key, value] of keyv.iterator()) {
+    console.log(key, value);
+    // Output:
+    // user:1 { name: 'Alice' }
+    // user:2 { name: 'Bob' }
+  }
+}
+```
 
 ## Why NeDB?
 
