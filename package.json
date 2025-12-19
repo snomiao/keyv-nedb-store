@@ -56,6 +56,7 @@
 		"build": "tsc",
 		"fmt": "biome check --unsafe --write",
 		"prepack": "bun fmt && bun run build",
+		"test": "bun test",
 		"release": "standard-version && git push --follow-tags && npm publish"
 	},
 	"engines": {
