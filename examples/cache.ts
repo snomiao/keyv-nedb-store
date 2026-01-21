@@ -7,7 +7,7 @@
  * - Managing cache invalidation with TTL
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 // Simulate an expensive API call
 async function fetchUserFromAPI(userId: string) {

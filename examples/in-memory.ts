@@ -7,7 +7,7 @@
  * - Testing scenarios
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 async function main() {
 	console.log("=== In-Memory Store Example ===\n");

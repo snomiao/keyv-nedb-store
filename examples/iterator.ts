@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 /**
  * Iterator example
  *
@@ -8,7 +10,7 @@
  * - Using for-await-of loops
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 async function main() {
 	console.log("=== Iterator Example ===\n");
@@ -26,10 +28,8 @@ async function main() {
 	await keyv1.set("product:2", { name: "Mouse", price: 29 });
 
 	console.log("\nIterating over all keys:");
-	if (keyv1.iterator) {
-		for await (const [key, value] of keyv1.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of store1.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	// Example 2: Iteration with namespace filtering
@@ -47,10 +47,8 @@ async function main() {
 	await keyv2.set("user:guest", { name: "Guest", role: "guest" });
 
 	console.log("\nIterating over namespace 'app':");
-	if (keyv2.iterator) {
-		for await (const [key, value] of keyv2.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of store2.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	// Example 3: Multiple namespaces in one file
@@ -77,24 +75,18 @@ async function main() {
 	await cache.set("popular", ["item1", "item2"]);
 
 	console.log("\nIterating over 'users' namespace:");
-	if (users.iterator) {
-		for await (const [key, value] of users.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of usersStore.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	console.log("\nIterating over 'sessions' namespace:");
-	if (sessions.iterator) {
-		for await (const [key, value] of sessions.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of sessionsStore.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	console.log("\nIterating over 'cache' namespace:");
-	if (cache.iterator) {
-		for await (const [key, value] of cache.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of cacheStore.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	// Example 4: Filtering expired values
@@ -109,20 +101,16 @@ async function main() {
 	await keyv4.set("temp:2", "also expires in 2 seconds", 2000);
 
 	console.log("\nBefore expiration:");
-	if (keyv4.iterator) {
-		for await (const [key, value] of keyv4.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of store4.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	console.log("\nWaiting 2.5 seconds for TTL to expire...");
 	await new Promise((resolve) => setTimeout(resolve, 2500));
 
 	console.log("\nAfter expiration (temp values filtered out automatically):");
-	if (keyv4.iterator) {
-		for await (const [key, value] of keyv4.iterator()) {
-			console.log(`  ${key}:`, value);
-		}
+	for await (const [key, value] of store4.iterator()) {
+		console.log(`  ${key}:`, value);
 	}
 
 	// Example 5: Collecting all entries into an array
@@ -135,10 +123,8 @@ async function main() {
 	await keyv5.set("item:3", "Third");
 
 	const entries = [];
-	if (keyv5.iterator) {
-		for await (const entry of keyv5.iterator()) {
-			entries.push(entry);
-		}
+	for await (const entry of store5.iterator()) {
+		entries.push(entry);
 	}
 
 	console.log("\nCollected entries:");
@@ -152,10 +138,8 @@ async function main() {
 	// Example 6: Count entries
 	console.log("\n\nExample 6: Counting entries");
 	let count = 0;
-	if (keyv5.iterator) {
-		for await (const _ of keyv5.iterator()) {
-			count++;
-		}
+	for await (const _ of store5.iterator()) {
+		count++;
 	}
 	console.log(`Total entries: ${count}`);
 

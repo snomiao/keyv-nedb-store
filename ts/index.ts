@@ -73,10 +73,10 @@ export default class KeyvNedbStore implements KeyvStoreAdapter {
 		};
 		this.opts =
 			uri instanceof NeDB
-				? { url: "", dialect: "sqlite" }
+				? { url: "" }
 				: typeof uri === "string"
-					? { filename: uri, autoload: true, url: "", dialect: "sqlite" }
-					: { ...(uri || {}), url: "", dialect: "sqlite" };
+					? { filename: uri, autoload: true, url: "" }
+					: { ...(uri || {}), url: "" };
 		const db = uri instanceof NeDB ? uri : new NeDB(this.opts);
 		this.db = db;
 

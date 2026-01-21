@@ -7,7 +7,7 @@
  * - Clearing all data
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 async function main() {
 	console.log("=== Basic Usage Example ===\n");

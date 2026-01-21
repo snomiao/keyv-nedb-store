@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 /**
  * Namespace example
  *
@@ -7,7 +9,7 @@
  * - Clearing namespace-specific data
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 async function main() {
 	console.log("=== Namespace Example ===\n");

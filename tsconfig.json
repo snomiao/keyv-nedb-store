@@ -11,7 +11,7 @@
 		// Bundler mode
 		"moduleResolution": "bundler",
 		"verbatimModuleSyntax": true,
-		"rootDir": "src",
+		"rootDir": "ts",
 		"outDir": "dist",
 		"declaration": true,
 		"declarationMap": true,
@@ -29,6 +29,6 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
 	},
-	"include": ["src/**/*.ts"],
-	"exclude": ["src/examples/**/*", "src/**/*.spec.ts"]
+	"include": ["ts/**/*.ts"],
+	"exclude": ["examples/**/*", "ts/**/*.spec.ts"]
 }

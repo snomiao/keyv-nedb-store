@@ -7,7 +7,7 @@
  * - Implementing compression for large values
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 // Custom serializer that handles Date objects
 const dateSerializer = {

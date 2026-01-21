@@ -7,7 +7,7 @@
  * - Working with various data types
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 async function main() {
 	console.log("=== Complex Objects Example ===\n");

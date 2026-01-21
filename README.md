@@ -140,14 +140,12 @@ const keyv = new Keyv({ store });
 await keyv.set("user:1", { name: "Alice" });
 await keyv.set("user:2", { name: "Bob" });
 
-// Iterate over all entries
-if (keyv.iterator) {
-  for await (const [key, value] of keyv.iterator()) {
-    console.log(key, value);
-    // Output:
-    // user:1 { name: 'Alice' }
-    // user:2 { name: 'Bob' }
-  }
+// Iterate over all entries using the store's iterator
+for await (const [key, value] of store.iterator()) {
+  console.log(key, value);
+  // Output:
+  // user:1 { name: 'Alice' }
+  // user:2 { name: 'Bob' }
 }
 ```
 

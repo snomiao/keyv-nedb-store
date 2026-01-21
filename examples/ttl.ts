@@ -7,7 +7,7 @@
  * - Different TTL durations
  */
 import Keyv from "keyv";
-import KeyvNedbStore from "../index.js";
+import KeyvNedbStore from "../ts/index.ts";
 
 async function main() {
 	console.log("=== TTL (Time-To-Live) Example ===\n");
