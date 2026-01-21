@@ -21,6 +21,7 @@ bun src/examples/basic.ts
 ### 1. Basic Usage (`basic.ts`)
 
 Learn the fundamentals:
+
 - Creating a file-based store
 - Basic CRUD operations (Create, Read, Update, Delete)
 - Clearing all data
@@ -32,6 +33,7 @@ bun src/examples/basic.ts
 ### 2. TTL - Time To Live (`ttl.ts`)
 
 Explore automatic expiration:
+
 - Setting values with expiration times
 - Different TTL durations
 - Automatic cleanup of expired values
@@ -43,6 +45,7 @@ bun src/examples/ttl.ts
 ### 3. Namespaces (`namespace.ts`)
 
 Organize your data:
+
 - Using namespaces to isolate data
 - Multiple namespaces in the same file
 - Namespace-specific operations
@@ -54,6 +57,7 @@ bun src/examples/namespace.ts
 ### 4. Complex Objects (`complex-objects.ts`)
 
 Work with rich data structures:
+
 - Storing nested objects and arrays
 - Handling special characters in keys (dots, dollar signs)
 - Various data types (strings, numbers, booleans, null)
@@ -65,6 +69,7 @@ bun src/examples/complex-objects.ts
 ### 5. Caching (`cache.ts`)
 
 Implement cache patterns:
+
 - Cache-aside pattern
 - Managing cache invalidation
 - TTL-based expiration
@@ -77,6 +82,7 @@ bun src/examples/cache.ts
 ### 6. Custom Serializers (`custom-serializer.ts`)
 
 Advanced serialization:
+
 - Custom Date object handling
 - Key escaping for special characters
 - Raw value storage
@@ -89,6 +95,7 @@ bun src/examples/custom-serializer.ts
 ### 7. In-Memory Store (`in-memory.ts`)
 
 Temporary storage without persistence:
+
 - In-memory only mode
 - Fast storage for temporary data
 - Testing scenarios
@@ -101,6 +108,7 @@ bun src/examples/in-memory.ts
 ### 8. Iterator (`iterator.ts`)
 
 Iterate over all entries in the store:
+
 - Using for-await-of loops
 - Namespace-specific iteration
 - Automatic filtering of expired values

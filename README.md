@@ -55,7 +55,7 @@ await keyv.clear();
 const store = new KeyvNedbStore({
   filename: "database.nedb.yaml",
   namespace: "myapp",
-  autoload: true
+  autoload: true,
 });
 
 const keyv = new Keyv({ store });
@@ -73,7 +73,7 @@ const keyv = new Keyv({ store });
 await keyv.set("temp", "value", 1000);
 
 // Wait for expiration
-await new Promise(resolve => setTimeout(resolve, 1100));
+await new Promise((resolve) => setTimeout(resolve, 1100));
 
 const value = await keyv.get("temp"); // undefined
 ```
@@ -85,9 +85,9 @@ const store = new KeyvNedbStore({
   filename: "database.nedb.yaml",
   serializer: {
     stringify: JSON.stringify,
-    parse: JSON.parse
+    parse: JSON.parse,
   },
-  autoload: true
+  autoload: true,
 });
 
 const keyv = new Keyv({ store });

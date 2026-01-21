@@ -18,7 +18,7 @@ async function main() {
 	// Example 1: Basic iteration
 	console.log("Example 1: Basic iteration");
 	const store1 = new KeyvNedbStore(".cache/iterator-example.nedb.yaml");
-	const keyv1 = new Keyv({ store: store1 });
+	const keyv1 = new Keyv(store1);
 
 	// Add some data
 	await keyv1.set("user:1", { name: "Alice", age: 30 });
@@ -28,17 +28,16 @@ async function main() {
 	await keyv1.set("product:2", { name: "Mouse", price: 29 });
 
 	console.log("\nIterating over all keys:");
-	for await (const [key, value] of store1.iterator()) {
+	for await (const [key, value] of keyv1.iterator!("keyv")) {
 		console.log(`  ${key}:`, value);
 	}
 
 	// Example 2: Iteration with namespace filtering
 	console.log("\n\nExample 2: Namespace filtering");
-	const store2 = new KeyvNedbStore(
-		".cache/iterator-namespace-example.nedb.yaml",
-		{ namespace: "app" }
-	);
-	const keyv2 = new Keyv({ store: store2 });
+	const store2 = new KeyvNedbStore(".cache/iterator-namespace-example.nedb.yaml", {
+		namespace: "app",
+	});
+	const keyv2 = new Keyv(store2);
 
 	// Add data with namespace
 	await keyv2.set("config:theme", "dark");
@@ -55,17 +54,23 @@ async function main() {
 	console.log("\n\nExample 3: Multiple namespaces");
 
 	// Use separate files for each namespace to avoid concurrent access issues
-	const usersStore = new KeyvNedbStore(".cache/iterator-users.nedb.yaml", { namespace: "users" });
-	const sessionsStore = new KeyvNedbStore(".cache/iterator-sessions.nedb.yaml", { namespace: "sessions" });
-	const cacheStore = new KeyvNedbStore(".cache/iterator-cache.nedb.yaml", { namespace: "cache" });
+	const usersStore = new KeyvNedbStore(".cache/iterator-users.nedb.yaml", {
+		namespace: "users",
+	});
+	const sessionsStore = new KeyvNedbStore(".cache/iterator-sessions.nedb.yaml", {
+		namespace: "sessions",
+	});
+	const cacheStore = new KeyvNedbStore(".cache/iterator-cache.nedb.yaml", {
+		namespace: "cache",
+	});
 
 	await usersStore.ready;
 	await sessionsStore.ready;
 	await cacheStore.ready;
 
-	const users = new Keyv({ store: usersStore });
-	const sessions = new Keyv({ store: sessionsStore });
-	const cache = new Keyv({ store: cacheStore });
+	const users = new Keyv(usersStore);
+	const sessions = new Keyv(sessionsStore);
+	const cache = new Keyv(cacheStore);
 
 	// Add data to different namespaces
 	await users.set("1", { name: "Alice" });
@@ -92,7 +97,7 @@ async function main() {
 	// Example 4: Filtering expired values
 	console.log("\n\nExample 4: Automatic filtering of expired values");
 	const store4 = new KeyvNedbStore(".cache/iterator-ttl-example.nedb.yaml");
-	const keyv4 = new Keyv({ store: store4 });
+	const keyv4 = new Keyv(store4);
 
 	// Add permanent and temporary values
 	await keyv4.set("permanent:1", "stays forever");
@@ -116,7 +121,7 @@ async function main() {
 	// Example 5: Collecting all entries into an array
 	console.log("\n\nExample 5: Collecting entries into an array");
 	const store5 = new KeyvNedbStore(".cache/iterator-collect-example.nedb.yaml");
-	const keyv5 = new Keyv({ store: store5 });
+	const keyv5 = new Keyv(store5);
 
 	await keyv5.set("item:1", "First");
 	await keyv5.set("item:2", "Second");

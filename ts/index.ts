@@ -23,215 +23,213 @@ import type { KeyvStoreAdapter } from "keyv";
  * ```
  */
 export default class KeyvNedbStore implements KeyvStoreAdapter {
-	db: NeDB;
-	opts: NeDB.DataStoreOptions | Nedb;
-	namespace?: string;
-	ready: Promise<void>;
-	/**
-	 * nedb have limitations on keys, e.g. no dot(.) allowed, no $ at the beginning
-	 * so we provide serialize and deserialize options to handle complex keys/values if needed
-	 *
-	 * by default, we escape dot(.) and $ with %2E and %24 respectively
-	 *
-	 * @example
-	 * ```ts
-	 * const store = new KeyvNedbStore({
-	 *   filename: "path/to/database.nedb",
-	 *   autoload: true,
-	 *   serializer: {
-	 *     stringify: (data) => {
-	 *       // custom serialization logic
-	 *       return customStringify(data);
-	 *     },
-	 *     parse: (data) => {
-	 *       // custom deserialization logic
-	 *       return customParse(data);
-	 *     },
-	 *   },
-	 * });
-	 * ```
-	 */
-	serializer?: {
-		parse: (data: any) => any;
-		stringify: (data: any) => any;
-	};
+  opts: {
+    db: NeDB;
+    url: string;
+    dialect: "mongo"; // mark as iterableAdapters https://github.com/jaredwray/keyv/blob/e3f8f0099ea36bcd0b1ffcb62e7577c2c805281f/packages/keyv/src/index.ts#L170
+  } & Partial<Nedb.DataStoreOptions>;
+  db: NeDB; // alias for this.opts.db
+  namespace?: string;
+  ready: Promise<void>;
+  /**
+   * nedb have limitations on keys, e.g. no dot(.) allowed, no $ at the beginning
+   * so we provide serialize and deserialize options to handle complex keys/values if needed
+   *
+   * by default, we escape dot(.) and $ with %2E and %24 respectively
+   *
+   * @example
+   * ```ts
+   * const store = new KeyvNedbStore({
+   *   filename: "path/to/database.nedb",
+   *   autoload: true,
+   *   serializer: {
+   *     stringify: (data) => {
+   *       // custom serialization logic
+   *       return customStringify(data);
+   *     },
+   *     parse: (data) => {
+   *       // custom deserialization logic
+   *       return customParse(data);
+   *     },
+   *   },
+   * });
+   * ```
+   */
+  serializer?: {
+    parse: (data: any) => any;
+    stringify: (data: any) => any;
+  };
 
-	constructor(
-		uri?: string | NeDB.DataStoreOptions | Nedb,
-		options: {
-			namespace?: string;
-			serializer?: {
-				parse: (data: any) => any;
-				stringify: (data: any) => any;
-			};
-		} = {},
-	) {
-		this.namespace = options.namespace;
-		this.serializer = options.serializer ?? {
-			stringify: escapeKeys,
-			parse: unescapeKeys,
-		};
-		this.opts =
-			uri instanceof NeDB
-				? { url: "" }
-				: typeof uri === "string"
-					? { filename: uri, autoload: true, url: "" }
-					: { ...(uri || {}), url: "" };
-		const db = uri instanceof NeDB ? uri : new NeDB(this.opts);
-		this.db = db;
+  constructor(
+    nedb?: string | NeDB.DataStoreOptions | NeDB,
+    options: {
+      namespace?: string;
+      serializer?: {
+        parse: (data: any) => any;
+        stringify: (data: any) => any;
+      };
+    } = {},
+  ) {
+    this.namespace = options.namespace;
+    this.serializer = options.serializer ?? {
+      stringify: escapeKeys,
+      parse: unescapeKeys,
+    };
+    this.opts = (() => {
+      if (typeof nedb === "string") {
+        const filename = nedb;
+        return {
+          filename,
+          autoload: true,
+          dialect: "mongo",
+          url: `nedb://${filename}`,
+          db: new NeDB({ filename, autoload: true }),
+        };
+      } else if (nedb instanceof NeDB) {
+        return { url: ":instance:", dialect: "mongo", db: nedb };
+      } else {
+        return {
+          ...nedb,
+          dialect: "mongo",
+          url: `nedb://${nedb?.filename || "[memory-nedb]"}`,
+          db: new NeDB(nedb),
+        };
+      }
+    })();
+    const db = (this.db = this.opts.db);
 
-		// Promisify NeDB methods we use
-		this.ready = (async () => {
-			await db.removeAsync(
-				{ expiredAt: { $lt: Date.now() } },
-				{ multi: true },
-			);
-			await db.compactDatafileAsync();
-		})();
-	}
+    // Promisify NeDB methods we use
+    this.ready = (async () => {
+      await db.removeAsync({ expiredAt: { $lt: Date.now() } }, { multi: true });
+      await db.compactDatafileAsync();
+    })();
+  }
 
-	// IEventEmitter interface methods
-	on(_event: string, _listener: (...arguments_: any[]) => void): this {
-		// NeDB doesn't have event emitter, so we return this for compatibility
-		return this;
-	}
+  // IEventEmitter interface methods
+  on(_event: string, _listener: (...arguments_: any[]) => void): this {
+    // NeDB doesn't have event emitter, so we return this for compatibility
+    return this;
+  }
 
-	private _getKey(key: string): string {
-		return this.namespace ? `${this.namespace}:${key}` : key;
-	}
+  private _getKey(key: string): string {
+    return this.namespace ? `${this.namespace}:${key}` : key;
+  }
 
-	async get<Value>(key: string): Promise<Value | undefined> {
-		const prefixedKey = this._getKey(key);
-		const doc = await this.db.findOneAsync({ _id: prefixedKey });
-		if (!doc) {
-			return undefined;
-		}
-		if (doc?.expiredAt && doc.expiredAt < Date.now()) {
-			await this.db.removeAsync({ _id: prefixedKey }, { multi: false });
-			return undefined;
-		}
-		return this.serializer?.parse
-			? this.serializer.parse(doc.value)
-			: doc.value;
-	}
-	async getMany<Value>(keys: string[]): Promise<Array<Value | undefined>> {
-		const results: Array<Value | undefined> = [];
-		for (const key of keys) {
-			const value = await this.get<Value>(key);
-			results.push(value);
-		}
-		return results;
-	}
+  async get<Value>(key: string): Promise<Value | undefined> {
+    const prefixedKey = this._getKey(key);
+    const doc = await this.db.findOneAsync({ _id: prefixedKey });
+    if (!doc) {
+      return undefined;
+    }
+    if (doc?.expiredAt && doc.expiredAt < Date.now()) {
+      await this.db.removeAsync({ _id: prefixedKey }, { multi: false });
+      return undefined;
+    }
+    return this.serializer?.parse ? this.serializer.parse(doc.value) : doc.value;
+  }
+  async getMany<Value>(keys: string[]): Promise<Array<Value | undefined>> {
+    const results: Array<Value | undefined> = [];
+    for (const key of keys) {
+      const value = await this.get<Value>(key);
+      results.push(value);
+    }
+    return results;
+  }
 
-	async set(key: string, value: any, ttl?: number): Promise<void> {
-		const prefixedKey = this._getKey(key);
-		await this.db.updateAsync(
-			{ _id: prefixedKey },
-			{
-				$set: {
-					_id: prefixedKey,
-					value: this.serializer?.stringify
-						? this.serializer.stringify(value)
-						: value,
-					updatedAt: Date.now(),
-					expiredAt: ttl ? Date.now() + ttl : null,
-				},
-			},
-			{ upsert: true },
-		);
-	}
+  async set(key: string, value: any, ttl?: number): Promise<void> {
+    const prefixedKey = this._getKey(key);
+    await this.db.updateAsync(
+      { _id: prefixedKey },
+      {
+        $set: {
+          _id: prefixedKey,
+          value: this.serializer?.stringify ? this.serializer.stringify(value) : value,
+          updatedAt: Date.now(),
+          expiredAt: ttl ? Date.now() + ttl : null,
+        },
+      },
+      { upsert: true },
+    );
+  }
 
-	async delete(key: string) {
-		const prefixedKey = this._getKey(key);
-		const results = await this.db.removeAsync(
-			{ _id: prefixedKey },
-			{ multi: false },
-		);
-		return results > 0;
-	}
+  async delete(key: string) {
+    const prefixedKey = this._getKey(key);
+    const results = await this.db.removeAsync({ _id: prefixedKey }, { multi: false });
+    return results > 0;
+  }
 
-	async *iterator<Value>(
-		namespace?: string,
-	): AsyncGenerator<[string, Value], void> {
-		// Determine which namespace to use
-		const targetNamespace = namespace ?? this.namespace;
+  async *iterator<Value>(namespace?: string): AsyncGenerator<[string, Value], void> {
+    // Determine which namespace to use
+    const targetNamespace = namespace ?? this.namespace;
 
-		// Build query to find all documents with the target namespace
-		const query: any = {};
-		if (targetNamespace) {
-			query._id = new RegExp(`^${targetNamespace}:`);
-		}
+    // Build query to find all documents with the target namespace
+    const query: any = {};
+    if (targetNamespace) {
+      query._id = new RegExp(`^${targetNamespace}:`);
+    }
 
-		// Get all documents
-		const docs = await this.db.findAsync(query);
+    // Get all documents
+    const docs = await this.db.findAsync(query);
 
-		// Yield each valid (non-expired) document
-		for (const doc of docs) {
-			// Skip expired documents
-			if (doc?.expiredAt && doc.expiredAt < Date.now()) {
-				continue;
-			}
+    // Yield each valid (non-expired) document
+    for (const doc of docs) {
+      // Skip expired documents
+      if (doc?.expiredAt && doc.expiredAt < Date.now()) {
+        continue;
+      }
 
-			// Remove namespace prefix from key
-			let key = doc._id;
-			if (targetNamespace) {
-				key = key.replace(`${targetNamespace}:`, "");
-			}
+      // Remove namespace prefix from key
+      let key = doc._id;
+      if (targetNamespace) {
+        key = key.replace(`${targetNamespace}:`, "");
+      }
 
-			// Parse value if serializer is configured
-			const value = this.serializer?.parse
-				? this.serializer.parse(doc.value)
-				: doc.value;
+      // Parse value if serializer is configured
+      const value = this.serializer?.parse ? this.serializer.parse(doc.value) : doc.value;
 
-			yield [key, value];
-		}
-	}
+      yield [key, value];
+    }
+  }
 
-	async clear(): Promise<void> {
-		if (this.namespace) {
-			// Only clear keys with this namespace
-			const pattern = new RegExp(`^${this.namespace}:`);
-			await this.db.removeAsync({ _id: pattern }, { multi: true });
-			await this.db.compactDatafileAsync();
-		} else {
-			// Clear all keys if no namespace
-			await this.db.removeAsync({}, { multi: true });
-			await this.db.compactDatafileAsync();
-		}
-	}
+  async clear(): Promise<void> {
+    if (this.namespace) {
+      // Only clear keys with this namespace
+      const pattern = new RegExp(`^${this.namespace}:`);
+      await this.db.removeAsync({ _id: pattern }, { multi: true });
+      await this.db.compactDatafileAsync();
+    } else {
+      // Clear all keys if no namespace
+      await this.db.removeAsync({}, { multi: true });
+      await this.db.compactDatafileAsync();
+    }
+  }
 }
 
 export function escapeKeys(o: any): any {
-	if (Array.isArray(o)) {
-		return o.map(escapeKeys);
-	} else if (o && typeof o === "object") {
-		const newObj: any = {};
-		for (const [k, v] of Object.entries(o)) {
-			// Escape % first to avoid double-escaping
-			const safeKey = k
-				.replace(/%/g, "%25")
-				.replace(/\./g, "%2E")
-				.replace(/\$/g, "%24");
-			newObj[safeKey] = escapeKeys(v);
-		}
-		return newObj;
-	}
-	return o;
+  if (Array.isArray(o)) {
+    return o.map(escapeKeys);
+  } else if (o && typeof o === "object") {
+    const newObj: any = {};
+    for (const [k, v] of Object.entries(o)) {
+      // Escape % first to avoid double-escaping
+      const safeKey = k.replace(/%/g, "%25").replace(/\./g, "%2E").replace(/\$/g, "%24");
+      newObj[safeKey] = escapeKeys(v);
+    }
+    return newObj;
+  }
+  return o;
 }
 export function unescapeKeys(o: any): any {
-	if (Array.isArray(o)) {
-		return o.map(unescapeKeys);
-	} else if (o && typeof o === "object") {
-		const newObj: any = {};
-		for (const [k, v] of Object.entries(o)) {
-			// Unescape % last to avoid double-unescaping
-			const safeKey = k
-				.replace(/%2E/g, ".")
-				.replace(/%24/g, "$")
-				.replace(/%25/g, "%");
-			newObj[safeKey] = unescapeKeys(v);
-		}
-		return newObj;
-	}
-	return o;
+  if (Array.isArray(o)) {
+    return o.map(unescapeKeys);
+  } else if (o && typeof o === "object") {
+    const newObj: any = {};
+    for (const [k, v] of Object.entries(o)) {
+      // Unescape % last to avoid double-unescaping
+      const safeKey = k.replace(/%2E/g, ".").replace(/%24/g, "$").replace(/%25/g, "%");
+      newObj[safeKey] = unescapeKeys(v);
+    }
+    return newObj;
+  }
+  return o;
 }
