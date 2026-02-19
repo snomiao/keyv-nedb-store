@@ -182,6 +182,17 @@ bun run fmt
 bun run build
 ```
 
+## See Also
+
+Other Keyv storage adapters by the same author:
+
+- [keyv-github](https://github.com/snomiao/keyv-github) — GitHub repository adapter; each key is a file, commits are writes
+- [keyv-sqlite](https://github.com/snomiao/keyv-sqlite) — SQLite storage adapter
+- [keyv-mongodb-store](https://github.com/snomiao/keyv-mongodb-store) — MongoDB storage adapter
+- [keyv-dir-store](https://github.com/snomiao/keyv-dir-store) — file-per-key directory adapter with TTL via mtime
+- [keyv-cache-proxy](https://github.com/snomiao/keyv-cache-proxy) — transparent caching proxy that wraps any object
+- [keyv-nest](https://github.com/snomiao/keyv-nest) — hierarchical multi-layer caching adapter
+
 ## License
 
 MIT
